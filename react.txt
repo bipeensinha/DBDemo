@@ -234,3 +234,151 @@ input, button {
   border: 1px solid #ccc;
   text-align: center;
 }
+
+
+uodared dashboard
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const bonds = [
+  { isin: "DE000001", issuer: "BMW", counterparty: "Client A", maturity: "2025-08-03", status: "OPEN" },
+  { isin: "DE000002", issuer: "Siemens", counterparty: "Client B", maturity: "2025-07-28", status: "OPEN" },
+  { isin: "DE000003", issuer: "Volkswagen", counterparty: "Client C", maturity: "2025-08-01", status: "REDEEMED" },
+  { isin: "DE000004", issuer: "BASF", counterparty: "Client D", maturity: "2025-08-10", status: "OPEN" },
+  { isin: "DE000005", issuer: "SAP", counterparty: "Client E", maturity: "2025-07-27", status: "OPEN" }
+];
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState('all');
+  const [filteredBonds, setFilteredBonds] = useState([]);
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("loggedInUser"));
+    if (!user) {
+      navigate("/login");
+    } else {
+      setUsername(user.name || user.email.split("@")[0]);
+    }
+    filterBonds('all');
+  }, []);
+
+  const daysBetween = (date1, date2) =>
+    Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
+
+  const filterBonds = (type) => {
+    setFilter(type);
+    const today = new Date();
+    const filtered = bonds.filter((bond) => {
+      const maturity = new Date(bond.maturity);
+      const diff = daysBetween(maturity, today);
+
+      if (type === 'all') return true;
+      if (type === 'upcoming') return diff >= 0 && diff <= 5;
+      if (type === 'recent') return diff < 0 && diff >= -5;
+      return false;
+    });
+    setFilteredBonds(filtered);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("loggedInUser");
+    navigate("/login");
+  };
+
+  return (
+    <div>
+      <header style={headerStyle}>
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Deutsche_Bank_logo_without_wordmark.svg/1200px-Deutsche_Bank_logo_without_wordmark.svg.png"
+          alt="DB Logo"
+          style={{ height: 50 }}
+        />
+        <h2 style={{ margin: '0 20px', flex: 1, color: '#003366' }}>Bond Tracker</h2>
+        <span style={userStyle}>👤 {username}</span>
+        <button onClick={logout} style={logoutButton}>Logout</button>
+      </header>
+
+      <div style={controlsStyle}>
+        <label htmlFor="filter">Show:</label>
+        <select value={filter} onChange={(e) => filterBonds(e.target.value)} style={selectStyle}>
+          <option value="all">All Bonds</option>
+          <option value="upcoming">Maturing in Next 5 Days</option>
+          <option value="recent">Matured in Last 5 Days</option>
+        </select>
+      </div>
+
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            <th>ISIN</th>
+            <th>Issuer</th>
+            <th>Counterparty</th>
+            <th>Maturity Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredBonds.map((bond, index) => (
+            <tr key={index}>
+              <td>{bond.isin}</td>
+              <td>{bond.issuer}</td>
+              <td>{bond.counterparty}</td>
+              <td>{bond.maturity}</td>
+              <td>{bond.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// === Styles (CSS-in-JS style) ===
+const headerStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  padding: '10px 20px',
+  background: '#ffffffdd',
+  borderBottom: '2px solid #ccc'
+};
+
+const userStyle = {
+  marginRight: '10px',
+  fontWeight: 'bold',
+  color: '#003366'
+};
+
+const logoutButton = {
+  backgroundColor: '#cc0000',
+  color: '#fff',
+  border: 'none',
+  padding: '8px 15px',
+  borderRadius: '6px',
+  cursor: 'pointer'
+};
+
+const controlsStyle = {
+  padding: '15px',
+  textAlign: 'center',
+  background: '#f0f0f0cc'
+};
+
+const selectStyle = {
+  padding: '8px',
+  fontSize: '16px',
+  marginLeft: '10px'
+};
+
+const tableStyle = {
+  width: '90%',
+  margin: '20px auto',
+  borderCollapse: 'collapse',
+  backgroundColor: 'white',
+  boxShadow: '0 0 8px #0003'
+};
+
+export default Dashboard;
+
