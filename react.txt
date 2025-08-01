@@ -1,0 +1,236 @@
+1. Login.js (React version of login.html)
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Login = () => {
+  const navigate = useNavigate();
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const email = e.target.email.value;
+    const name = email.split('@')[0] || "User";
+
+    localStorage.setItem('loggedInUser', JSON.stringify({ name, email }));
+    navigate('/dashboard');
+  };
+
+  return (
+    <div className="form-container">
+      <h2>Login to Bond Tracker</h2>
+      <form onSubmit={handleLogin}>
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+        <p>Don’t have an account? <a href="/register">Register here</a></p>
+      </form>
+    </div>
+  );
+};
+
+export default Login;
+✅ 2. Register.js (React version of register.html)
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Register = () => {
+  const navigate = useNavigate();
+
+  const handleRegister = (e) => {
+    e.preventDefault();
+    const name = e.target.name.value;
+    const email = e.target.email.value.toLowerCase();
+    const password = e.target.password.value;
+
+    const user = { name, email, password };
+    localStorage.setItem("loggedInUser", JSON.stringify(user));
+    navigate('/dashboard');
+  };
+
+  return (
+    <div className="form-container">
+      <h2>Create Your Account</h2>
+      <form onSubmit={handleRegister}>
+        <input type="text" name="name" placeholder="Full Name" required />
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="submit">Register</button>
+        <p>Already registered? <a href="/login">Login here</a></p>
+      </form>
+    </div>
+  );
+};
+
+export default Register;
+✅ 3. Dashboard.js (React version of index.html)
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const bonds = [
+  { isin: "DE000001", issuer: "BMW", counterparty: "Client A", maturity: "2025-08-03", status: "OPEN" },
+  { isin: "DE000002", issuer: "Siemens", counterparty: "Client B", maturity: "2025-07-28", status: "OPEN" },
+  { isin: "DE000003", issuer: "Volkswagen", counterparty: "Client C", maturity: "2025-08-01", status: "REDEEMED" },
+  { isin: "DE000004", issuer: "BASF", counterparty: "Client D", maturity: "2025-08-10", status: "OPEN" },
+  { isin: "DE000005", issuer: "SAP", counterparty: "Client E", maturity: "2025-07-27", status: "OPEN" }
+];
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState('all');
+  const [filteredBonds, setFilteredBonds] = useState([]);
+  const [username, setUsername] = useState('');
+
+  const daysBetween = (date1, date2) =>
+    Math.floor((date1 - date2) / (1000 * 60 * 60 * 24));
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("loggedInUser"));
+    if (!user) {
+      navigate('/login');
+    } else {
+      setUsername(user.name || user.email.split("@")[0]);
+    }
+    filterBonds('all');
+  }, []);
+
+  const filterBonds = (type) => {
+    setFilter(type);
+    const today = new Date();
+    const newList = bonds.filter((bond) => {
+      const maturityDate = new Date(bond.maturity);
+      const diff = daysBetween(maturityDate, today);
+
+      if (type === 'all') return true;
+      if (type === 'upcoming') return diff >= 0 && diff <= 5;
+      if (type === 'recent') return diff < 0 && diff >= -5;
+      return false;
+    });
+
+    setFilteredBonds(newList);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("loggedInUser");
+    navigate("/login");
+  };
+
+  return (
+    <div>
+      <header className="dashboard-header">
+        <h2>Bond Tracker</h2>
+        <span className="username">Welcome, {username}</span>
+        <button onClick={logout} className="logout">Logout</button>
+      </header>
+
+      <div className="controls">
+        <label htmlFor="filter">Show: </label>
+        <select value={filter} onChange={(e) => filterBonds(e.target.value)}>
+          <option value="all">All Bonds</option>
+          <option value="upcoming">Maturing in Next 5 Days</option>
+          <option value="recent">Matured in Last 5 Days</option>
+        </select>
+      </div>
+
+      <table className="bond-table">
+        <thead>
+          <tr>
+            <th>ISIN</th>
+            <th>Issuer</th>
+            <th>Counterparty</th>
+            <th>Maturity Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredBonds.map((bond, index) => (
+            <tr key={index}>
+              <td>{bond.isin}</td>
+              <td>{bond.issuer}</td>
+              <td>{bond.counterparty}</td>
+              <td>{bond.maturity}</td>
+              <td>{bond.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default Dashboard;
+✅ Next Step: Add Styles
+Add this to App.css or your index.css:
+
+
+body {
+  font-family: Arial;
+  background: linear-gradient(to right, #003366, #ffffff, #cc0000);
+  margin: 0;
+  padding: 0;
+}
+
+.form-container {
+  max-width: 400px;
+  margin: 80px auto;
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px #0002;
+}
+
+input, button {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.logout {
+  background: #cc0000;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 8px 15px;
+  border-radius: 6px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #ffffffdd;
+  border-bottom: 1px solid #ccc;
+}
+
+.username {
+  margin-right: 10px;
+  font-weight: bold;
+  color: #003366;
+}
+
+.controls {
+  text-align: center;
+  margin: 20px;
+}
+
+.bond-table {
+  width: 90%;
+  margin: auto;
+  border-collapse: collapse;
+  background: white;
+}
+
+.bond-table th {
+  background: #003366;
+  color: white;
+}
+
+.bond-table th, .bond-table td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
